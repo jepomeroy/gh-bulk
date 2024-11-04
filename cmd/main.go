@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
+	"path"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/go-gh/v2/pkg/api"
@@ -38,9 +38,19 @@ func main() {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "auth", repo.UserAuth)
 
-	repoOptions := repo.FilterReposOptions(client, ctx)
+	repoOptions, err := repo.FilterReposOptions(client, ctx)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+		return
+	}
 
-	repos := repo.SelectRepositories(repoOptions)
+	repos, err := repo.SelectRepositories(repoOptions)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+		return
+	}
 
 	commit, err := commit.NewCommit()
 	if err != nil {
@@ -62,11 +72,15 @@ func main() {
 		return
 	}
 
+	processRepos(cwd, repos, command, commit)
+}
+
+func processRepos(cwd string, repos []repo.Repository, command execute.Command, commit commit.Commit) {
 	for _, r := range repos {
-		tempDir := fmt.Sprintf("/tmp/%s", r.Name)
+		tempDir := path.Join(os.TempDir(), r.Name)
 		err := r.Clone(tempDir)
 		if err != nil {
-			fmt.Println("Error cloning repository:", err)
+			fmt.Println("Error cloning repository:", tempDir, err)
 			clean(cwd, r)
 			continue
 		}
@@ -100,8 +114,6 @@ func main() {
 		}
 
 		clean(cwd, r)
-
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -114,16 +126,20 @@ func clean(cwd string, r repo.Repository) {
 	}
 }
 func makeDescription(command execute.Command, commit commit.Commit, selectedRepos []repo.Repository) string {
-	description := fmt.Sprintf("command: %s\nbranch name: %s\ncommit title: %s\ncommit message: %s\n\n",
+	description := fmt.Sprintf("%-20s %s\n%-20s %s\n%-20s %s\n%-20s %s\n\n",
+		"command:",
 		command.CommandValue,
+		"branch name:",
 		commit.BranchName,
-		commit.CommitTitle,
+		"pull request title:",
+		commit.PullRequestTitle,
+		"commit message:",
 		commit.CommitMessage,
 	)
 
 	description += "Repositories:\n"
 	for _, r := range selectedRepos {
-		description += fmt.Sprintf("\t%s\n", r.Name)
+		description += fmt.Sprintf("  %s\n", r.Name)
 	}
 
 	return description

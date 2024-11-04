@@ -3,8 +3,8 @@ package repo
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/go-gh/v2"
@@ -31,9 +31,9 @@ type Repository struct {
 }
 
 func (r *Repository) Clone(tempDir string) error {
-	// Clone repository
 	fmt.Printf("Cloning repository %s\n", r.Name)
 
+	// Clone repository
 	_, stdErr, err := gh.Exec("repo", "clone", r.SSHURL, tempDir)
 	if err != nil {
 		fmt.Printf("Error cloning repository %s: %s\n", r.Name, err)
@@ -41,6 +41,7 @@ func (r *Repository) Clone(tempDir string) error {
 		return err
 	}
 
+	// Set the tempdir and open the repos
 	r.tmpDir = tempDir
 	gitRepo, err := git.PlainOpen(tempDir)
 	if err != nil {
@@ -48,8 +49,11 @@ func (r *Repository) Clone(tempDir string) error {
 		return err
 	}
 
+	// Store the repo reference
 	r.gitRepo = gitRepo
 
+	// set the current working dir to the tempDir
+	// everything is relative to the tempDir
 	err = os.Chdir(r.tmpDir)
 	if err != nil {
 		fmt.Printf("Error changing directory to %s: %s\n", r.tmpDir, err)
@@ -60,9 +64,9 @@ func (r *Repository) Clone(tempDir string) error {
 }
 
 func (r *Repository) Clean() error {
-	// Clean up repository
 	fmt.Printf("Cleaning up repository %s\n", r.Name)
 
+	// Clean up repository
 	err := os.RemoveAll(r.tmpDir)
 	if err != nil {
 		fmt.Printf("Error cleaning up repository %s: %s\n", r.Name, err)
@@ -73,15 +77,15 @@ func (r *Repository) Clean() error {
 }
 
 func (r Repository) CreateBranch(commit commit.Commit) error {
-	// Commit and Push changes
 	println("Committing and pushing changes")
-	// Create a new branch
+
 	w, err := r.gitRepo.Worktree()
 	if err != nil {
 		fmt.Println("Failed to get worktree:", err)
 		return err
 	}
 
+	// create a new branch and check it out
 	newBranch := plumbing.NewBranchReferenceName(commit.BranchName)
 	err = w.Checkout(&git.CheckoutOptions{
 		Branch: newBranch,
@@ -97,28 +101,26 @@ func (r Repository) CreateBranch(commit commit.Commit) error {
 }
 
 func (r Repository) CommitAndPush(commit commit.Commit) error {
-	// Commit changes to the new branch
 	w, err := r.gitRepo.Worktree()
 	if err != nil {
 		fmt.Println("Failed to get worktree:", err)
 		return err
 	}
 
+	// stage all the changes from commmand execution
 	_, err = w.Add(".")
 	if err != nil {
-		fmt.Println("Error added in changes for commit: ", err)
+		fmt.Println("Error added in changes for commit:", err)
 		return err
 	}
 
-	_, err = w.Commit("Add new feature", &git.CommitOptions{Author: &object.Signature{}})
-	// 	Author: &object.Signature{
-	// 		Name:  "Your Name",
-	// 		Email: "your.email@example.com",
-	// 		When:  time.Now(),
-	// 	},
-	// })
+	// commit the changes
+	_, err = w.Commit(commit.CommitMessage, &git.CommitOptions{Author: &object.Signature{
+		Name: "GH Bulk Extension",
+		When: time.Now(),
+	}})
 	if err != nil {
-		fmt.Println("Failed to commit changes: ", err)
+		fmt.Println("Failed to commit changes:", err)
 		return err
 	}
 
@@ -128,7 +130,7 @@ func (r Repository) CommitAndPush(commit commit.Commit) error {
 	}
 	err = r.gitRepo.Push(pushOptions)
 	if err != nil {
-		fmt.Println("Failed to push branch: ", err)
+		fmt.Println("Failed to push branch:", err)
 		return err
 	}
 
@@ -137,24 +139,18 @@ func (r Repository) CommitAndPush(commit commit.Commit) error {
 }
 
 func (r Repository) CreatePR(commit commit.Commit) error {
-	if len(commit.CommitMessage) > 0 {
-		_, stdErr, err := gh.Exec("pr", "create", "--title", commit.CommitTitle, "--body", commit.CommitMessage)
-		if err != nil {
-			fmt.Println(stdErr)
-			return err
-		}
-	} else {
-		_, stdErr, err := gh.Exec("pr", "create", "--title", commit.CommitTitle, "--body", "")
-		if err != nil {
-			fmt.Println(stdErr)
-			return err
-		}
+	// commit the PR
+	_, stdErr, err := gh.Exec("pr", "create", "--title", commit.PullRequestTitle, "--body", commit.CommitMessage)
+	if err != nil {
+		fmt.Println(stdErr.String())
+		return err
 	}
 
 	return nil
 }
 
-func FilterReposOptions(client *api.RESTClient, ctx context.Context) []Repository {
+// Filter the repositories based on the search query. The query is a simple string match
+func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Repository, error) {
 	var searchQuery string
 
 	form := huh.NewForm(
@@ -167,29 +163,31 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) []Repositor
 		),
 	).WithTheme(huh.ThemeCatppuccin())
 
-	ierr := form.Run()
-
-	if ierr != nil {
-		fmt.Println(ierr)
-		os.Exit(0)
+	err := form.Run()
+	if err != nil {
+		return []Repository{}, err
 	}
 
 	fmt.Println("Fetching repositories...")
 	repos := []Repository{}
 	page := 1
 
+	// Retrieve all repostories for the authenticated user
 	for {
+		// get the authenticated user
 		user := ctx.Value("auth").(Auth).Login
+		// build the query parameters
 		queryParams := fmt.Sprintf("%s+user:%s&page=%d&sort=name&order=asc", searchQuery, user, page)
 
+		// Fetch repositories
 		var result map[string]interface{}
 		err := client.Get("search/repositories?q="+queryParams, &result)
-
 		if err != nil {
-			log.Panic("Error fetching repositories:", err)
-			os.Exit(0)
+			fmt.Println("Error fetching repositories:", err)
+			return []Repository{}, err
 		}
 
+		// Parese the result and append to the repos slice
 		if items, ok := result["items"].([]interface{}); ok {
 			for _, item := range items {
 				if repo, ok := item.(map[string]interface{}); ok {
@@ -210,12 +208,14 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) []Repositor
 		page++
 	}
 
-	return repos
+	return repos, nil
 }
 
-func SelectRepositories(repos []Repository) []Repository {
+// Using the result of the FilterReposOptions function, select the repositories to process
+func SelectRepositories(repos []Repository) ([]Repository, error) {
 	var selections []string
 
+	// Create a multi-select form from the repository names
 	repoOptions := []huh.Option[string]{}
 
 	for _, repo := range repos {
@@ -235,11 +235,11 @@ func SelectRepositories(repos []Repository) []Repository {
 		WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
-
 	if err != nil {
-		os.Exit(0)
+		return []Repository{}, err
 	}
 
+	// Get the selected repositories and return them
 	selectedRepos := []Repository{}
 	for _, repo := range repos {
 		for _, selection := range selections {
@@ -249,5 +249,5 @@ func SelectRepositories(repos []Repository) []Repository {
 		}
 	}
 
-	return selectedRepos
+	return selectedRepos, nil
 }

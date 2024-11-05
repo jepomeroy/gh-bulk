@@ -15,14 +15,6 @@ import (
 	"github.com/jonepom/gh-bulk/internal/commit"
 )
 
-var (
-	UserAuth Auth
-)
-
-type Auth struct {
-	Login string
-}
-
 type Repository struct {
 	Name    string
 	SSHURL  string
@@ -175,7 +167,7 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Reposito
 	// Retrieve all repostories for the authenticated user
 	for {
 		// get the authenticated user
-		user := ctx.Value("auth").(Auth).Login
+		user := ctx.Value("auth")
 		// build the query parameters
 		queryParams := fmt.Sprintf("%s+user:%s&page=%d&sort=name&order=asc", searchQuery, user, page)
 
@@ -231,8 +223,7 @@ func SelectRepositories(repos []Repository) ([]Repository, error) {
 				Value(&selections).
 				Height(20),
 		),
-	).
-		WithTheme(huh.ThemeCatppuccin())
+	).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
 	if err != nil {

@@ -61,7 +61,7 @@ func NewCommit() (Commit, error) {
 				Value(&commitMessage).
 				CharLimit(400),
 		),
-	)
+	).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
 	if err != nil {

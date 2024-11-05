@@ -22,7 +22,7 @@ func GetCommand() (Command, error) {
 				Description("Enter the command to run on each repository").
 				Value(&command),
 		),
-	)
+	).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
 	if err != nil {

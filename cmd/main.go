@@ -9,9 +9,18 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/jonepom/gh-bulk/internal/commit"
+	"github.com/jonepom/gh-bulk/internal/config"
 	"github.com/jonepom/gh-bulk/internal/execute"
 	"github.com/jonepom/gh-bulk/internal/repo"
 )
+
+var (
+	UserAuth Auth
+)
+
+type Auth struct {
+	Login string
+}
 
 func main() {
 	cwd, err := os.Getwd()
@@ -28,7 +37,7 @@ func main() {
 		return
 	}
 
-	err = client.Get("user", &repo.UserAuth)
+	err = client.Get("user", &UserAuth)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -36,7 +45,33 @@ func main() {
 	}
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, "auth", repo.UserAuth)
+
+	c, err := config.LoadConfig()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+		return
+	}
+
+	if c.HasEntry(UserAuth.Login) == false {
+		user, err := c.AddEntry(UserAuth.Login)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+			return
+		}
+
+		ctx = context.WithValue(ctx, "auth", user)
+	} else {
+		user, err := c.GetAuthUser(UserAuth.Login)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(0)
+			return
+		}
+
+		ctx = context.WithValue(ctx, "auth", user)
+	}
 
 	repoOptions, err := repo.FilterReposOptions(client, ctx)
 	if err != nil {

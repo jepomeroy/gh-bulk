@@ -169,7 +169,7 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Reposito
 		// get the authenticated user
 		user := ctx.Value("auth")
 		// build the query parameters
-		queryParams := fmt.Sprintf("%s+user:%s&page=%d&sort=name&order=asc", searchQuery, user, page)
+		queryParams := fmt.Sprintf("%s+user:%s+archived:false&page=%d&sort=name&order=asc", searchQuery, user, page)
 
 		// Fetch repositories
 		var result map[string]interface{}

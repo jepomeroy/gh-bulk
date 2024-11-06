@@ -112,9 +112,10 @@ func makeConfigDir() error {
 
 func makeEntry(entryName string) (ConfigEntry, error) {
 	var entryType UserType
-	var authUser string
+	var authUser string = entryName
 
 	// prompt the user for the entry type and auth user
+	fmt.Printf("Current GitHub Login: %s\n\n", entryName)
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[UserType]().
@@ -124,11 +125,12 @@ func makeEntry(entryName string) (ConfigEntry, error) {
 					huh.NewOption("Organization", OrganizationType),
 				).
 				Value(&entryType),
-			huh.NewInput().
-				Title("Enter Auth User").
-				// Skip(func() { return entryType == AccountType }).
-				Value(&authUser),
 		),
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Enter Organization name").
+				Value(&authUser),
+		).WithHideFunc(func() bool { return entryType == AccountType }),
 	).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()

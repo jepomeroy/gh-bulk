@@ -73,16 +73,28 @@ func main() {
 		ctx = context.WithValue(ctx, "auth", user)
 	}
 
-	repoOptions, err := repo.FilterReposOptions(client, ctx)
+	repoList, err := repo.FilterReposOptions(client, ctx)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 		return
 	}
 
-	repos, err := repo.SelectRepositories(repoOptions)
+	if len(repoList) == 0 {
+		fmt.Println("No repositories found")
+		os.Exit(0)
+		return
+	}
+
+	repos, err := repo.SelectRepositories(repoList)
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(0)
+		return
+	}
+
+	if len(repos) == 0 {
+		fmt.Println("No repositories selected")
 		os.Exit(0)
 		return
 	}
@@ -160,6 +172,7 @@ func clean(cwd string, r repo.Repository) {
 		fmt.Printf("Error cleaning %s, %s\n", r.Name, err)
 	}
 }
+
 func makeDescription(command execute.Command, commit commit.Commit, selectedRepos []repo.Repository) string {
 	description := fmt.Sprintf("%-20s %s\n%-20s %s\n%-20s %s\n%-20s %s\n\n",
 		"command:",
@@ -179,6 +192,7 @@ func makeDescription(command execute.Command, commit commit.Commit, selectedRepo
 
 	return description
 }
+
 func validate(command execute.Command, commit commit.Commit, selectedRepos []repo.Repository) bool {
 	var confirm bool
 	description := makeDescription(command, commit, selectedRepos)

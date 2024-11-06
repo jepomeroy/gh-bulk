@@ -8,10 +8,10 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/go-gh/v2/pkg/api"
-	"github.com/jonepom/gh-bulk/internal/commit"
-	"github.com/jonepom/gh-bulk/internal/config"
-	"github.com/jonepom/gh-bulk/internal/execute"
-	"github.com/jonepom/gh-bulk/internal/repo"
+	"github.com/jepomeroy/gh-bulk/internal/commit"
+	"github.com/jepomeroy/gh-bulk/internal/config"
+	"github.com/jepomeroy/gh-bulk/internal/execute"
+	"github.com/jepomeroy/gh-bulk/internal/repo"
 )
 
 var (

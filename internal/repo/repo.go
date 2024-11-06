@@ -12,7 +12,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/jonepom/gh-bulk/internal/commit"
+	"github.com/jepomeroy/gh-bulk/internal/commit"
 )
 
 type Repository struct {

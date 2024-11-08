@@ -1,6 +1,6 @@
 module github.com/jepomeroy/gh-bulk
 
-go 1.22.6
+go 1.21.13
 
 require (
 	github.com/charmbracelet/huh v0.6.0

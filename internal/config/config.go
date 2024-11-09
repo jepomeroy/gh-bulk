@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	AccountType UserType = iota
+	IndividualType UserType = iota
 	OrganizationType
 )
 
@@ -112,16 +112,16 @@ func makeConfigDir() error {
 
 func makeEntry(entryName string) (ConfigEntry, error) {
 	var entryType UserType
-	var authUser string = entryName
+	var authUser string
 
 	// prompt the user for the entry type and auth user
-	fmt.Printf("Current GitHub Login: %s\n\n", entryName)
+	fmt.Printf("Current GitHub User: %s\n\n", entryName)
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[UserType]().
 				Title("Select User type").
 				Options(
-					huh.NewOption("Account", AccountType),
+					huh.NewOption("Individual", IndividualType),
 					huh.NewOption("Organization", OrganizationType),
 				).
 				Value(&entryType),
@@ -129,8 +129,9 @@ func makeEntry(entryName string) (ConfigEntry, error) {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Enter Organization name").
+				Placeholder("Org name").
 				Value(&authUser),
-		).WithHideFunc(func() bool { return entryType == AccountType }),
+		).WithHideFunc(func() bool { return entryType == IndividualType }),
 	).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
@@ -138,7 +139,7 @@ func makeEntry(entryName string) (ConfigEntry, error) {
 		return ConfigEntry{}, err
 	}
 
-	if entryType == AccountType {
+	if entryType == IndividualType {
 		authUser = entryName
 	}
 

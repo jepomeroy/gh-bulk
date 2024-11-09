@@ -10,7 +10,6 @@ permissions:
 jobs:
   # Run linting
   lint:
-    needs: init
     runs-on: ubuntu-latest
 
     strategy:

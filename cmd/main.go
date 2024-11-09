@@ -24,7 +24,7 @@ type Auth struct {
 
 func main() {
 	cwd, err := os.Getwd()
-	if err != nil {
+	if    err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 		return

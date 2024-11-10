@@ -22,7 +22,7 @@ jobs:
         with:
           types: |
             chore
-            docs
+            doc
             feat
             feature
             fix

@@ -5,7 +5,13 @@ A GH CLI extension for performing bulk operations on GitHub repositories.
 ## Requirements
 
 - [GitHub CLI](https://cli.github.com/)
-- Go 1.21.13 or later
+- Go 1.21.13 or later (for development and building locally)
+
+## Features
+
+- :clap: Easily filter and select repositories to perform bulk operations
+- :sparkles: Run simple shell commands or complex scripts on selected repositories
+- :rocket: Automatically commit, push, and create pull requests for changes made to repositories
 
 ## Installation
 
@@ -50,6 +56,21 @@ The username/organization information is stored in the `~/.config/gh/gh-bulk/con
   type: 1
   authUser: my_org_name
 ```
+
+### Using the extension
+
+1. Run `gh bulk` to start the extension
+2. Filter repositories by name or description. Any empty filter returns all repositories.
+   ![Filter repositories](./images/repo-filter.png)
+3. Select repositories to perform bulk operations on from the list.
+   ![Select repositories](./images/select-repos.png)
+4. Enter the branch name, commit message, and PR title.
+   ![Branch, commit, and PR](./images/pr-info.png)
+5. Enter the command to run on the selected repositories. The command can be a simple shell command or a complex script.
+   ![Command](./images/command.png)
+6. Review the command and selected repositories.
+   ![Review](./images/summary.png)
+7. Confirm the bulk process.
 
 ## Development
 

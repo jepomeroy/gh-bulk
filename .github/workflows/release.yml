@@ -5,8 +5,9 @@ on:
   push:
     paths-ignore:
       - ".github/**"
-      - "README.md"
       - ".gitignore"
+      - "images/**"
+      - "README.md"
     branches:
       - main
 

@@ -65,11 +65,11 @@ The username/organization information is stored in the `~/.config/gh/gh-bulk/con
 3. Select repositories to perform bulk operations on from the list.
    ![Select repositories](./images/select-repos.png)
 4. Enter the branch name, commit message, and PR title.
-   ![Branch, commit, and PR](./pr-info.png)
+   ![Branch, commit, and PR](./images/pr-info.png)
 5. Enter the command to run on the selected repositories. The command can be a simple shell command or a complex script.
    ![Command](./images/command.png)
 6. Review the command and selected repositories.
-   ![Review](./images/review.png)
+   ![Review](./images/summary.png)
 7. Confirm the bulk process.
 
 ## Development

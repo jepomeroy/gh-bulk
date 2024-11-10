@@ -1,0 +1,58 @@
+name: Tag and Release
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - ".github/**"
+      - "README.md"
+      - ".gitignore"
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+# Only one releases at a time
+concurrency:
+  group: tag-and-release
+
+jobs:
+  tag-and-release:
+    name: Tag and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make Next Version
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          majorList: release,rel
+          minorList: feature,feat
+          patchList: fix,test,chore,doc
+          token: ${{ github.token }}
+          branch: main
+
+      - name: Tag
+        run: |
+          git tag ${{ steps.semver.outputs.next }}
+          git push --tags
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          generateReleaseNotes: true
+          name: ${{ steps.semver.outputs.next }}
+          tag: ${{ steps.semver.outputs.next }}
+          token: ${{ github.token }}
+
+      - name: Precompile
+        uses: cli/gh-extension-precompile@v1
+        with:
+          generate_attestations: true
+          go_version_file: go.mod

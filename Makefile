@@ -9,7 +9,7 @@ reset: clean build uninstall install
 
 build:
 	@echo "Building..."
-	@go build -o ./gh-$(app_name) ./cmd/main.go
+	@go build -o ./gh-$(app_name) main.go
 
 clean:
 	@echo "Cleaning..."

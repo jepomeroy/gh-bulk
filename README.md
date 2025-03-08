@@ -5,7 +5,7 @@ A GH CLI extension for performing bulk operations on GitHub repositories.
 ## Requirements
 
 - [GitHub CLI](https://cli.github.com/)
-- Go 1.21.13 or later (for development and building locally)
+- Go 1.23 or later (for development and building locally)
 
 ## Features
 

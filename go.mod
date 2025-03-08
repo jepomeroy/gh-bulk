@@ -1,6 +1,7 @@
 module github.com/jepomeroy/gh-bulk
 
-go 1.21.13
+go 1.23.0
+
 toolchain go1.23.6
 
 require (

@@ -48,7 +48,9 @@ jobs:
           tag: ${{ steps.semver.outputs.next }}
           token: ${{ github.token }}
       - name: Precompile
-        uses: cli/gh-extension-precompile@v1
+        uses: cli/gh-extension-precompile@v2
+        env:
+          CGO_ENABLED: 1
         with:
           generate_attestations: true
           go_version_file: go.mod

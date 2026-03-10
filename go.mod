@@ -3,7 +3,7 @@ module github.com/jepomeroy/gh-bulk
 go 1.25.0
 
 require (
-	github.com/charmbracelet/huh v0.8.0
+	github.com/charmbracelet/huh v1.0.0
 	github.com/cli/go-gh/v2 v2.13.0
 	github.com/go-git/go-git/v5 v5.17.0
 	gopkg.in/yaml.v3 v3.0.1

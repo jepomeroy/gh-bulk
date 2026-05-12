@@ -1,11 +1,15 @@
 # Description: Makefile for building the project
 
-.PHONY: build clean
+.PHONY: clean test install uninstall
 
 app_name = bulk
 
-reset: clean build uninstall install
+reset: clean build test uninstall install
 	@echo "Reset complete"
+
+test:
+	@echo "Testing..."
+	@go test ./...
 
 build:
 	@echo "Building..."

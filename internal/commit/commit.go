@@ -1,3 +1,4 @@
+// Package commit provides the Commit type for capturing git branch, commit, and pull request metadata.
 package commit
 
 import (
@@ -6,12 +7,14 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
+// Commit holds the metadata needed to create a branch, commit changes, and open a pull request.
 type Commit struct {
 	BranchName       string
 	PullRequestTitle string
 	CommitMessage    string
 }
 
+// NewCommit prompts the user interactively for branch name, pull request title, and commit message.
 func NewCommit() (Commit, error) {
 	var branchName string
 	var prTitle string
@@ -24,12 +27,11 @@ func NewCommit() (Commit, error) {
 				Value(&branchName).
 				CharLimit(80).
 				Validate(func(s string) error {
-					// check if branch name is empty
 					if len(s) == 0 {
 						return errors.New("Branch name required")
 					}
 
-					// check if branch name is valid, only a-z A-Z 0-9 - _ . and / are allowed
+					// only a-z A-Z 0-9 - _ . / are valid branch name characters
 					for _, c := range s {
 						if !((c >= 'a' && c <= 'z') ||
 							(c >= 'A' && c <= 'Z') ||
@@ -49,7 +51,6 @@ func NewCommit() (Commit, error) {
 				Value(&prTitle).
 				CharLimit(80).
 				Validate(func(s string) error {
-					// check if commit title is empty
 					if len(s) == 0 {
 						return errors.New("Pull Request title required")
 					}

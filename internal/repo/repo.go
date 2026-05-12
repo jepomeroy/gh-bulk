@@ -1,3 +1,4 @@
+// Package repo provides types and functions for discovering, cloning, and automating changes across GitHub repositories.
 package repo
 
 import (
@@ -15,6 +16,9 @@ import (
 	"github.com/jepomeroy/gh-bulk/internal/commit"
 )
 
+type AuthUserKey string
+
+// Repository represents a GitHub repository with its name, SSH URL, and local clone state.
 type Repository struct {
 	Name    string
 	SSHURL  string
@@ -22,10 +26,10 @@ type Repository struct {
 	gitRepo *git.Repository
 }
 
+// Clone clones r to tempDir using the GitHub CLI and changes the working directory to tempDir.
 func (r *Repository) Clone(tempDir string) error {
 	fmt.Printf("Cloning repository %s\n", r.Name)
 
-	// Clone repository
 	_, stdErr, err := gh.Exec("repo", "clone", r.SSHURL, tempDir)
 	if err != nil {
 		fmt.Printf("Error cloning repository %s: %s\n", r.Name, err)
@@ -33,7 +37,6 @@ func (r *Repository) Clone(tempDir string) error {
 		return err
 	}
 
-	// Set the tempdir and open the repos
 	r.tmpDir = tempDir
 	gitRepo, err := git.PlainOpen(tempDir)
 	if err != nil {
@@ -41,11 +44,9 @@ func (r *Repository) Clone(tempDir string) error {
 		return err
 	}
 
-	// Store the repo reference
 	r.gitRepo = gitRepo
 
-	// set the current working dir to the tempDir
-	// everything is relative to the tempDir
+	// Shell commands executed via Execute run relative to the cloned repository.
 	err = os.Chdir(r.tmpDir)
 	if err != nil {
 		fmt.Printf("Error changing directory to %s: %s\n", r.tmpDir, err)
@@ -55,10 +56,10 @@ func (r *Repository) Clone(tempDir string) error {
 	return nil
 }
 
+// Clean removes the cloned repository from the temporary directory.
 func (r *Repository) Clean() error {
 	fmt.Printf("Cleaning up repository %s\n", r.Name)
 
-	// Clean up repository
 	err := os.RemoveAll(r.tmpDir)
 	if err != nil {
 		fmt.Printf("Error cleaning up repository %s: %s\n", r.Name, err)
@@ -68,6 +69,7 @@ func (r *Repository) Clean() error {
 	return nil
 }
 
+// CreateBranch creates and checks out a new branch named by commit.BranchName.
 func (r Repository) CreateBranch(commit commit.Commit) error {
 	println("Committing and pushing changes")
 
@@ -77,7 +79,6 @@ func (r Repository) CreateBranch(commit commit.Commit) error {
 		return err
 	}
 
-	// create a new branch and check it out
 	newBranch := plumbing.NewBranchReferenceName(commit.BranchName)
 	err = w.Checkout(&git.CheckoutOptions{
 		Branch: newBranch,
@@ -92,6 +93,7 @@ func (r Repository) CreateBranch(commit commit.Commit) error {
 	return nil
 }
 
+// CommitAndPush stages all changes, commits with commit.CommitMessage, and pushes to origin.
 func (r Repository) CommitAndPush(commit commit.Commit) error {
 	w, err := r.gitRepo.Worktree()
 	if err != nil {
@@ -99,14 +101,12 @@ func (r Repository) CommitAndPush(commit commit.Commit) error {
 		return err
 	}
 
-	// stage all the changes from commmand execution
 	_, err = w.Add(".")
 	if err != nil {
 		fmt.Println("Error added in changes for commit:", err)
 		return err
 	}
 
-	// commit the changes
 	_, err = w.Commit(commit.CommitMessage, &git.CommitOptions{Author: &object.Signature{
 		Name: "GH Bulk Extension",
 		When: time.Now(),
@@ -116,7 +116,6 @@ func (r Repository) CommitAndPush(commit commit.Commit) error {
 		return err
 	}
 
-	// Push the new branch to the remote repository
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 	}
@@ -130,8 +129,8 @@ func (r Repository) CommitAndPush(commit commit.Commit) error {
 	return nil
 }
 
+// CreatePR opens a pull request using the commit's title and message as body.
 func (r Repository) CreatePR(commit commit.Commit) error {
-	// commit the PR
 	_, stdErr, err := gh.Exec("pr", "create", "--title", commit.PullRequestTitle, "--body", commit.CommitMessage)
 	if err != nil {
 		fmt.Println(stdErr.String())
@@ -141,7 +140,7 @@ func (r Repository) CreatePR(commit commit.Commit) error {
 	return nil
 }
 
-// Filter the repositories based on the search query. The query is a simple string match
+// FilterReposOptions prompts for a search filter and returns matching non-archived repositories.
 func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Repository, error) {
 	var searchQuery string
 
@@ -164,25 +163,20 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Reposito
 	repos := []Repository{}
 	page := 1
 
-	// Retrieve all repostories for the authenticated user
 	for {
-		// get the authenticated user
-		user := ctx.Value("auth")
-		// build the query parameters
+		user := ctx.Value(AuthUserKey("auth"))
 		queryParams := fmt.Sprintf("%s+user:%s+archived:false&page=%d&sort=name&order=asc", searchQuery, user, page)
 
-		// Fetch repositories
-		var result map[string]interface{}
+		var result map[string]any
 		err := client.Get("search/repositories?q="+queryParams, &result)
 		if err != nil {
 			fmt.Println("Error fetching repositories:", err)
 			return []Repository{}, err
 		}
 
-		// Parese the result and append to the repos slice
-		if items, ok := result["items"].([]interface{}); ok {
+		if items, ok := result["items"].([]any); ok {
 			for _, item := range items {
-				if repo, ok := item.(map[string]interface{}); ok {
+				if repo, ok := item.(map[string]any); ok {
 					name := repo["name"].(string)
 					sshURL := repo["ssh_url"].(string)
 					repos = append(repos, Repository{Name: name, SSHURL: sshURL})
@@ -190,24 +184,26 @@ func FilterReposOptions(client *api.RESTClient, ctx context.Context) ([]Reposito
 			}
 		}
 
-		// Break if there are no more pages
-		total_count := int(result["total_count"].(float64))
-		if total_count == len(repos) {
+		totalCount := int(result["total_count"].(float64))
+		if totalCount == len(repos) {
 			break
 		}
 
-		// Fetch next page
 		page++
 	}
 
 	return repos, nil
 }
 
-// Using the result of the FilterReposOptions function, select the repositories to process
+// SelectRepositories presents a multi-select prompt and returns the chosen repositories from repos.
 func SelectRepositories(repos []Repository) ([]Repository, error) {
 	var selections []string
+	customKeyMap := huh.NewDefaultKeyMap()
 
-	// Create a multi-select form from the repository names
+	// customize keymap help
+	customKeyMap.MultiSelect.SelectAll.SetHelp("ctrl+shift+a", "select all")
+	customKeyMap.MultiSelect.SelectNone.SetHelp("ctrl+shift+a", "select none")
+
 	repoOptions := []huh.Option[string]{}
 
 	for _, repo := range repos {
@@ -223,14 +219,13 @@ func SelectRepositories(repos []Repository) ([]Repository, error) {
 				Value(&selections).
 				Height(20),
 		),
-	).WithTheme(huh.ThemeCatppuccin())
+	).WithKeyMap(customKeyMap).WithTheme(huh.ThemeCatppuccin())
 
 	err := form.Run()
 	if err != nil {
 		return []Repository{}, err
 	}
 
-	// Get the selected repositories and return them
 	selectedRepos := []Repository{}
 	for _, repo := range repos {
 		for _, selection := range selections {

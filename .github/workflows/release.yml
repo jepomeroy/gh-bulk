@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Make Next Version
         id: semver
         uses: ietf-tools/semver-action@v1
@@ -41,7 +41,7 @@ jobs:
           git tag ${{ steps.semver.outputs.next }}
           git push --tags
       - name: Create Release
-        uses: ncipollo/release-action@v1.14.0
+        uses: ncipollo/release-action@v1.21.0
         with:
           generateReleaseNotes: true
           name: ${{ steps.semver.outputs.next }}

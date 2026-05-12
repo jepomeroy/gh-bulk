@@ -1,3 +1,6 @@
+// Command gh-bulk automates bulk operations across multiple GitHub repositories.
+// It clones each selected repository, runs a specified shell command, commits the
+// changes, and opens a pull request — all driven by interactive prompts.
 package main
 
 import (
@@ -5,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/go-gh/v2/pkg/api"
@@ -14,10 +18,12 @@ import (
 	"github.com/jepomeroy/gh-bulk/internal/repo"
 )
 
+// UserAuth stores the authenticated GitHub user's login information.
 var (
 	UserAuth Auth
 )
 
+// Auth holds the GitHub API user's login name.
 type Auth struct {
 	Login string
 }
@@ -53,7 +59,7 @@ func main() {
 		return
 	}
 
-	if c.HasEntry(UserAuth.Login) == false {
+	if !c.HasEntry(UserAuth.Login) {
 		user, err := c.AddEntry(UserAuth.Login)
 		if err != nil {
 			fmt.Println(err)
@@ -61,7 +67,7 @@ func main() {
 			return
 		}
 
-		ctx = context.WithValue(ctx, "auth", user)
+		ctx = context.WithValue(ctx, repo.AuthUserKey("auth"), user)
 	} else {
 		user, err := c.GetAuthUser(UserAuth.Login)
 		if err != nil {
@@ -70,7 +76,7 @@ func main() {
 			return
 		}
 
-		ctx = context.WithValue(ctx, "auth", user)
+		ctx = context.WithValue(ctx, repo.AuthUserKey("auth"), user)
 	}
 
 	repoList, err := repo.FilterReposOptions(client, ctx)
@@ -113,7 +119,7 @@ func main() {
 		return
 	}
 
-	if validate(command, commit, repos) == false {
+	if !validate(command, commit, repos) {
 		fmt.Println("Aborting...")
 		os.Exit(0)
 		return
@@ -167,14 +173,15 @@ func processRepos(cwd string, repos []repo.Repository, command execute.Command, 
 func clean(cwd string, r repo.Repository) {
 	os.Chdir(cwd)
 	err := r.Clean()
-
 	if err != nil {
 		fmt.Printf("Error cleaning %s, %s\n", r.Name, err)
 	}
 }
 
 func makeDescription(command execute.Command, commit commit.Commit, selectedRepos []repo.Repository) string {
-	description := fmt.Sprintf("%-20s %s\n%-20s %s\n%-20s %s\n%-20s %s\n\n",
+	var description strings.Builder
+
+	fmt.Fprintf(&description, "%-20s %s\n%-20s %s\n%-20s %s\n%-20s %s\n\n",
 		"command:",
 		command.CommandValue,
 		"branch name:",
@@ -185,12 +192,12 @@ func makeDescription(command execute.Command, commit commit.Commit, selectedRepo
 		commit.CommitMessage,
 	)
 
-	description += "Repositories:\n"
+	description.WriteString("Repositories:\n")
 	for _, r := range selectedRepos {
-		description += fmt.Sprintf("  %s\n", r.Name)
+		fmt.Fprintf(&description, "  %s\n", r.Name)
 	}
 
-	return description
+	return description.String()
 }
 
 func validate(command execute.Command, commit commit.Commit, selectedRepos []repo.Repository) bool {

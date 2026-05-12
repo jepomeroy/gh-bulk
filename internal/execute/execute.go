@@ -1,3 +1,4 @@
+// Package execute provides types for capturing and running shell commands against repositories.
 package execute
 
 import (
@@ -7,10 +8,12 @@ import (
 	"github.com/charmbracelet/huh"
 )
 
+// Command holds the shell command string to run on each repository.
 type Command struct {
 	CommandValue string
 }
 
+// GetCommand prompts the user to enter the shell command to execute on each repository.
 func GetCommand() (Command, error) {
 	var command string
 
@@ -32,6 +35,7 @@ func GetCommand() (Command, error) {
 	return Command{CommandValue: command}, nil
 }
 
+// Execute runs the command in a shell and returns any error.
 func (c Command) Execute() error {
 	out, err := exec.Command("sh", "-c", c.CommandValue).CombinedOutput()
 	if err != nil {
